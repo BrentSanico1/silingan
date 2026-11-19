@@ -1,0 +1,30 @@
+# Compiled Java artifacts
+target/
+*.class
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment and sensitive keys
+.env
+.env.local
+application-local.yml
+
+# IDE / System
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+srs_full.txt
+extract_srs.py
