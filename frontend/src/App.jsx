@@ -90,7 +90,7 @@ export default function App() {
 
           {error && <div style={styles.errorBox}>{error}</div>}
 
-          <form onSubmit={handleAuth} style={styles.form}>
+          <form onSubmit={handleAuth} style={styles.form} autoComplete="off">
             {isRegistering && (
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Full Name</label>
@@ -99,6 +99,7 @@ export default function App() {
                   type="text"
                   placeholder="e.g. Juan dela Cruz"
                   value={form.name}
+                  autoComplete="off"
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   required
                 />
@@ -112,6 +113,7 @@ export default function App() {
                 type="email"
                 placeholder="juan@example.com"
                 value={form.email}
+                autoComplete="new-password"
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 required
               />
@@ -124,6 +126,7 @@ export default function App() {
                 type="password"
                 placeholder="••••••••"
                 value={form.password}
+                autoComplete="new-password"
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 required
               />
