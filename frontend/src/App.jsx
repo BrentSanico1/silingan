@@ -124,7 +124,7 @@ export default function App() {
               <input
                 style={styles.input}
                 type="password"
-                placeholder="••••••••"
+                placeholder="Enter password"
                 value={form.password}
                 autoComplete="new-password"
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
