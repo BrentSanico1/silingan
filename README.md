@@ -48,28 +48,30 @@
 - Node.js 18+ and npm
 
 ### 1. Database Configuration
-Update `src/main/resources/application.yml` or export environment variables:
+The application is pre-configured to connect to Supabase PostgreSQL in `src/main/resources/application.yml`.
+Ensure your database password is set in `application.yml` or passed via environment variable:
 ```powershell
-$env:SUPABASE_PASSWORD = "your_supabase_password_or_service_role_key"
+$env:SUPABASE_PASSWORD = "your_database_password"
 ```
 
 ### 2. Running the Spring Boot Backend
+Open a terminal and run:
 ```powershell
-cd C:\Users\L23Y19W38\Downloads\silingan
-# If Maven is in tools:
+# If using the included portable Maven:
 $env:Path = "C:\Users\L23Y19W38\tools\apache-maven-3.9.9\bin;" + $env:Path
 
+cd C:\Users\L23Y19W38\Downloads\silingan
 mvn spring-boot:run
 ```
-The backend API starts on `http://localhost:8080`.
+The backend REST API starts on `http://localhost:8080`.
 
 ### 3. Running the React Frontend
-In a new terminal:
+Open a second terminal and run:
 ```powershell
 cd C:\Users\L23Y19W38\Downloads\silingan\frontend
 npm run dev
 ```
-The web application will open at `http://localhost:5173`.
+Open your browser at `http://localhost:5173`.
 
 ---
 
