@@ -1,6 +1,7 @@
 # Silingan: Barangay Community Feed and Local Engagement Platform
 
-**Project Increment 1: User Accounts, Authentication, and Role-Based Dashboards**
+**Project Increment 1: User Accounts, Authentication, and Role-Based Dashboards**  
+**Project Increment 2: User Profile and Password Management**
 
 **Course:** IT342 - Systems Integration and Architecture 1  
 **Author:** S Brent Sanico  
@@ -29,6 +30,58 @@
    - **Barangay Official Dashboard:** Active concern management queue, official announcement board access, community moderation metrics.
    - **System Administrator Dashboard:** Platform health, barangay registration management, role allocation console.
    - Client and server-side authorization enforcement.
+
+---
+
+## Features Implemented in Increment 2: User Profile and Password Management
+
+1. **User Profile Management** (`My Profile` in the sidebar, or click your name in the top bar)
+   - View your own name, email, role, contact number, address, bio, and barangay.
+   - Edit name, contact number, address, and bio, with validation in the browser and on the server (Bean Validation).
+   - Only the signed-in user's own profile is reachable: every route uses `/api/users/me` and resolves the account from the JWT. Email and role cannot be changed through this endpoint.
+2. **Forgot / Reset Password** (`Forgot password?` on the login page)
+   - Generates a random 256-bit token that **expires after 30 minutes** and **works once**. Only its SHA-256 hash is stored in the `password_reset_tokens` table.
+   - Emails the user a link to `/reset-password?token=...`. The response is the same whether or not the email exists, which prevents account enumeration. Requests are throttled to one per 60 seconds per account.
+   - The new password is BCrypt-hashed. All earlier sessions are revoked and any other open reset links are invalidated.
+3. **Change Password** (`Change Password` in the sidebar)
+   - Requires the current password, a new password that meets the policy, and a matching confirmation. The new password must differ from the current one.
+   - The old password stops working immediately, and JWTs issued before the change are rejected (`token_version` check). The current session receives a fresh token.
+
+Password policy (registration, change, and reset): 8–72 characters, with at least one letter and one number.
+
+### New / changed API endpoints
+
+| Method | Endpoint | Auth | Purpose |
+|---|---|---|---|
+| GET | `/api/users/me` | Bearer | View own profile |
+| PUT | `/api/users/me` | Bearer | Update own profile |
+| PUT | `/api/users/me/password` | Bearer | Change password |
+| POST | `/api/auth/forgot-password` | Public | Request a reset link |
+| GET | `/api/auth/reset-password/validate?token=` | Public | Check a reset link |
+| POST | `/api/auth/reset-password` | Public | Set a new password with a reset token |
+
+### Email configuration for reset links
+
+Set these environment variables before starting the backend, for example with a Gmail App Password:
+
+```powershell
+$env:SPRING_MAIL_HOST = "smtp.gmail.com"
+$env:SPRING_MAIL_PORT = "587"
+$env:SPRING_MAIL_USERNAME = "your.address@gmail.com"
+$env:SPRING_MAIL_PASSWORD = "your-16-char-app-password"
+$env:MAIL_FROM = "your.address@gmail.com"
+```
+
+If `SPRING_MAIL_HOST` is not set, the backend writes the reset link to its console log (`Password reset link for ...`) so the flow can still be tested locally.
+
+### Running without Supabase / automated tests
+
+```powershell
+mvn spring-boot:run "-Dspring-boot.run.profiles=h2"   # in-memory H2 database, data resets on restart
+mvn test                                             # 10 API integration tests for Increments 1 and 2
+```
+
+Screenshots of every step are in [docs/screenshots](docs/screenshots). The completion report is [docs/Increment-2-Completion-Report.pdf](docs/Increment-2-Completion-Report.pdf).
 
 ---
 

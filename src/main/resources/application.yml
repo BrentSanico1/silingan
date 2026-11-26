@@ -28,6 +28,22 @@ spring:
             token-uri: https://oauth2.googleapis.com/token
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
+  # SMTP for password reset emails. Set SPRING_MAIL_HOST, SPRING_MAIL_PORT,
+  # SPRING_MAIL_USERNAME and SPRING_MAIL_PASSWORD as environment variables.
+  # If SPRING_MAIL_HOST is not set, reset links are written to the server log instead.
+  mail:
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 jwt:
   secret: ${JWT_SECRET:your_jwt_secret_key_here}
   expirationMs: ${JWT_EXPIRATION_MS:86400000} # 1 day
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  mail-from: ${MAIL_FROM:no-reply@silingan.local}
+  password-reset:
+    expiry-minutes: ${PASSWORD_RESET_EXPIRY_MINUTES:30}
+    resend-cooldown-seconds: 60

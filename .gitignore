@@ -28,3 +28,7 @@ application-local.yml
 Thumbs.db
 srs_full.txt
 extract_srs.py
+
+# Local knowledge-graph output (graphify)
+graphify-out/
+srs/
