@@ -1,4 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { styles } from './styles.js';
+import { PASSWORD_RULES } from './api.js';
+import ForgotPassword from './components/ForgotPassword.jsx';
+import ResetPassword from './components/ResetPassword.jsx';
+import ProfilePage from './components/ProfilePage.jsx';
+import ChangePassword from './components/ChangePassword.jsx';
+
+const isResetPath = () => window.location.pathname.replace(/\/+$/, '') === '/reset-password';
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -11,6 +19,10 @@ export default function App() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
+  // Screens shown when signed out: 'auth' (sign in / register), 'forgot', 'reset'
+  const [authView, setAuthView] = useState(() => (isResetPath() ? 'reset' : 'auth'));
+  const [resetToken] = useState(() => new URLSearchParams(window.location.search).get('token') || '');
+  const [notice, setNotice] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -61,8 +73,56 @@ export default function App() {
   const handleLogout = () => {
     setUser(null);
     setToken('');
+    setActiveTab('home');
     localStorage.clear();
   };
+
+  // Called when the backend answers 401 (expired token, or password changed elsewhere).
+  const handleUnauthorized = (message) => {
+    handleLogout();
+    setNotice(message || 'Your session has ended. Please log in again.');
+  };
+
+  const finishReset = (message) => {
+    window.history.replaceState(null, '', '/');
+    setAuthView('auth');
+    setIsRegistering(false);
+    setError('');
+    setNotice(message);
+  };
+
+  // A reset link always shows the reset screen, even if someone is signed in on this browser.
+  if (authView === 'reset') {
+    return (
+      <div style={styles.authContainer}>
+        <div style={styles.authCard}>
+          <div style={styles.headerArea}>
+            <h1 style={styles.logoTitle}>Silingan</h1>
+            <p style={styles.subTitle}>Barangay Community & Engagement Platform</p>
+          </div>
+          <ResetPassword token={resetToken} onDone={(msg) => {
+            // A successful reset revokes every session, so clear any stale local login.
+            if (msg) { handleLogout(); }
+            finishReset(msg);
+          }} />
+        </div>
+      </div>
+    );
+  }
+
+  if (!user && authView === 'forgot') {
+    return (
+      <div style={styles.authContainer}>
+        <div style={styles.authCard}>
+          <div style={styles.headerArea}>
+            <h1 style={styles.logoTitle}>Silingan</h1>
+            <p style={styles.subTitle}>Barangay Community & Engagement Platform</p>
+          </div>
+          <ForgotPassword onBack={() => { setAuthView('auth'); setNotice(''); }} />
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -76,18 +136,19 @@ export default function App() {
           <div style={styles.switchTabs}>
             <button
               style={{ ...styles.switchBtn, ...(isRegistering ? {} : styles.switchBtnActive) }}
-              onClick={() => { setIsRegistering(false); setError(''); }}
+              onClick={() => { setIsRegistering(false); setError(''); setNotice(''); }}
             >
               Sign In
             </button>
             <button
               style={{ ...styles.switchBtn, ...(isRegistering ? styles.switchBtnActive : {}) }}
-              onClick={() => { setIsRegistering(true); setError(''); }}
+              onClick={() => { setIsRegistering(true); setError(''); setNotice(''); }}
             >
               Create Account
             </button>
           </div>
 
+          {notice && !error && <div style={styles.successBox}>{notice}</div>}
           {error && <div style={styles.errorBox}>{error}</div>}
 
           <form onSubmit={handleAuth} style={styles.form} autoComplete="off">
@@ -130,6 +191,17 @@ export default function App() {
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 required
               />
+              {isRegistering ? (
+                <span style={styles.hint}>{PASSWORD_RULES}</span>
+              ) : (
+                <button
+                  type="button"
+                  style={styles.linkBtn}
+                  onClick={() => { setAuthView('forgot'); setError(''); setNotice(''); }}
+                >
+                  Forgot password?
+                </button>
+              )}
             </div>
 
             {isRegistering && (
@@ -171,7 +243,11 @@ export default function App() {
           <span style={styles.brandTitle}>Barangay Platform</span>
         </div>
         <div style={styles.navRight}>
-          <div style={styles.userProfilePill}>
+          <div
+            style={{ ...styles.userProfilePill, cursor: 'pointer' }}
+            onClick={() => setActiveTab('profile')}
+            title="View my profile"
+          >
             <span style={styles.userNameText}>{user.name}</span>
             <span style={{
               ...styles.roleTag,
@@ -222,6 +298,21 @@ export default function App() {
                 System Administration
               </button>
             )}
+          </nav>
+          <div style={{ ...styles.sidebarHeader, marginTop: '24px' }}>Account</div>
+          <nav style={styles.sideNav}>
+            <button
+              style={{ ...styles.navItem, ...(activeTab === 'profile' ? styles.navItemActive : {}) }}
+              onClick={() => setActiveTab('profile')}
+            >
+              My Profile
+            </button>
+            <button
+              style={{ ...styles.navItem, ...(activeTab === 'security' ? styles.navItemActive : {}) }}
+              onClick={() => setActiveTab('security')}
+            >
+              Change Password
+            </button>
           </nav>
         </aside>
 
@@ -365,287 +456,24 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {activeTab === 'profile' && (
+            <ProfilePage
+              token={token}
+              onUnauthorized={handleUnauthorized}
+              onProfileUpdated={(p) => setUser({ ...user, name: p.name })}
+            />
+          )}
+
+          {activeTab === 'security' && (
+            <ChangePassword
+              token={token}
+              onUnauthorized={handleUnauthorized}
+              onPasswordChanged={(newToken) => setToken(newToken)}
+            />
+          )}
         </main>
       </div>
     </div>
   );
 }
-
-const styles = {
-  authContainer: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f3f4f6',
-    padding: '20px'
-  },
-  authCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    padding: '32px',
-    width: '100%',
-    maxWidth: '440px',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-  },
-  headerArea: {
-    textAlign: 'center',
-    marginBottom: '24px'
-  },
-  logoTitle: {
-    fontSize: '28px',
-    fontWeight: '800',
-    color: '#1e40af'
-  },
-  subTitle: {
-    fontSize: '13px',
-    color: '#6b7280',
-    marginTop: '4px'
-  },
-  switchTabs: {
-    display: 'flex',
-    backgroundColor: '#f3f4f6',
-    borderRadius: '8px',
-    padding: '4px',
-    marginBottom: '20px'
-  },
-  switchBtn: {
-    flex: 1,
-    padding: '8px',
-    border: 'none',
-    backgroundColor: 'transparent',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#4b5563'
-  },
-  switchBtnActive: {
-    backgroundColor: '#ffffff',
-    color: '#1e40af',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-  },
-  errorBox: {
-    backgroundColor: '#fee2e2',
-    color: '#991b1b',
-    padding: '10px 14px',
-    borderRadius: '6px',
-    fontSize: '13px',
-    marginBottom: '16px'
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px'
-  },
-  inputGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px'
-  },
-  label: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#374151'
-  },
-  input: {
-    padding: '10px 12px',
-    borderRadius: '6px',
-    border: '1px solid #d1d5db',
-    fontSize: '14px',
-    outline: 'none'
-  },
-  submitBtn: {
-    backgroundColor: '#1e40af',
-    color: '#ffffff',
-    padding: '12px',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: '600',
-    marginTop: '6px'
-  },
-  mockHint: {
-    marginTop: '20px',
-    padding: '12px',
-    backgroundColor: '#f8fafc',
-    border: '1px dashed #cbd5e1',
-    borderRadius: '8px',
-    fontSize: '12px',
-    color: '#475569'
-  },
-  appLayout: {
-    minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'column'
-  },
-  navbar: {
-    height: '60px',
-    backgroundColor: '#ffffff',
-    borderBottom: '1px solid #e5e7eb',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 24px'
-  },
-  navLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px'
-  },
-  brandBadge: {
-    backgroundColor: '#1e40af',
-    color: '#ffffff',
-    padding: '4px 10px',
-    borderRadius: '6px',
-    fontWeight: '800',
-    fontSize: '15px'
-  },
-  brandTitle: {
-    fontSize: '16px',
-    fontWeight: '700',
-    color: '#111827'
-  },
-  navRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px'
-  },
-  userProfilePill: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    backgroundColor: '#f3f4f6',
-    padding: '6px 12px',
-    borderRadius: '20px'
-  },
-  userNameText: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#1f2937'
-  },
-  roleTag: {
-    fontSize: '11px',
-    fontWeight: 'bold',
-    color: '#ffffff',
-    padding: '2px 8px',
-    borderRadius: '10px'
-  },
-  logoutBtn: {
-    padding: '6px 14px',
-    border: '1px solid #d1d5db',
-    backgroundColor: '#ffffff',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#374151'
-  },
-  mainWrapper: {
-    flex: 1,
-    display: 'flex'
-  },
-  sidebar: {
-    width: '240px',
-    backgroundColor: '#ffffff',
-    borderRight: '1px solid #e5e7eb',
-    padding: '20px 16px'
-  },
-  sidebarHeader: {
-    fontSize: '12px',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    color: '#9ca3af',
-    marginBottom: '12px',
-    letterSpacing: '0.05em'
-  },
-  sideNav: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px'
-  },
-  navItem: {
-    textAlign: 'left',
-    padding: '10px 12px',
-    borderRadius: '6px',
-    border: 'none',
-    backgroundColor: 'transparent',
-    fontSize: '14px',
-    fontWeight: '500',
-    color: '#4b5563'
-  },
-  navItemActive: {
-    backgroundColor: '#eff6ff',
-    color: '#1e40af',
-    fontWeight: '600'
-  },
-  content: {
-    flex: 1,
-    padding: '28px',
-    backgroundColor: '#f9fafb'
-  },
-  welcomeBanner: {
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    padding: '24px',
-    border: '1px solid #e5e7eb',
-    marginBottom: '24px'
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-    gap: '20px',
-    marginBottom: '24px'
-  },
-  statCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    padding: '20px',
-    border: '1px solid #e5e7eb',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px'
-  },
-  statLabel: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#6b7280'
-  },
-  statVal: {
-    fontSize: '22px',
-    fontWeight: '800',
-    color: '#111827'
-  },
-  verifiedBadge: {
-    fontSize: '12px',
-    fontWeight: 'bold',
-    color: '#16a34a'
-  },
-  roleDetailBox: {
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    padding: '24px',
-    border: '1px solid #e5e7eb'
-  },
-  samplePost: {
-    padding: '14px',
-    backgroundColor: '#f8fafc',
-    borderRadius: '8px',
-    border: '1px solid #e2e8f0',
-    marginBottom: '12px'
-  },
-  officialPill: {
-    fontSize: '11px',
-    backgroundColor: '#dbeafe',
-    color: '#1e40af',
-    fontWeight: 'bold',
-    padding: '2px 8px',
-    borderRadius: '10px'
-  },
-  residentPill: {
-    fontSize: '11px',
-    backgroundColor: '#dcfce7',
-    color: '#166534',
-    fontWeight: 'bold',
-    padding: '2px 8px',
-    borderRadius: '10px'
-  }
-};
