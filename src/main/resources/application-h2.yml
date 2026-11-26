@@ -1,0 +1,14 @@
+# Local profile that runs the backend against an in-memory H2 database
+# instead of Supabase. Start with: mvn spring-boot:run -Dspring-boot.run.profiles=h2
+# Data is lost when the server stops. Also used by the automated tests.
+spring:
+  datasource:
+    url: jdbc:h2:mem:silingan;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false

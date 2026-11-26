@@ -1,5 +1,6 @@
 package com.silingan.security;
 
+import com.silingan.model.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +16,9 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
+    /** Claim holding the user's token version; see {@link User#getTokenVersion()}. */
+    public static final String TOKEN_VERSION_CLAIM = "tv";
+
     private final SecretKey key;
     private final long jwtExpirationMs;
 
@@ -29,10 +33,11 @@ public class JwtUtil {
         this.jwtExpirationMs = expirationMs;
     }
 
-    public String generateToken(String subject, String role) {
+    public String generateToken(User user) {
         return Jwts.builder()
-                .subject(subject)
-                .claim("role", role)
+                .subject(user.getEmail())
+                .claim("role", user.getRole().name())
+                .claim(TOKEN_VERSION_CLAIM, user.getTokenVersion())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
                 .signWith(key)
@@ -51,7 +56,7 @@ public class JwtUtil {
         try {
             parseClaims(token);
             return true;
-        } catch (JwtException ex) {
+        } catch (JwtException | IllegalArgumentException ex) {
             return false;
         }
     }
